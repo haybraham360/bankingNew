@@ -17,6 +17,19 @@ const {
   APPWRITE_TRANSACTION_COLLECTION_ID: TRANSACTION_COLLECTION_ID,
 } = process.env;
 
+interface DwollaErrorResponse {
+  code: string;
+  message: string;
+  _embedded?: {
+    errors: Array<{
+      code: string;
+      message: string;
+      path: string;
+    }>;
+  };
+}
+
+
 export const getUserInfo = async ({ userId }: getUserInfoProps) => {
   try {
     const { database } = await createAdminClient();
@@ -77,6 +90,15 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
 
     if(!dwollaCustomerUrl) throw new Error('Error creating Dwolla customer')
 
+      // Type guard to check if the response is an error
+      if (typeof dwollaCustomerUrl !== 'string') {
+        const errorResponse = dwollaCustomerUrl as DwollaErrorResponse;
+        if (errorResponse.code === 'ValidationError') {
+          const errorMessage = errorResponse._embedded?.errors[0]?.message || 'Validation error';
+          throw new Error(errorMessage);
+        }
+      }
+
     const dwollaCustomerId = extractCustomerIdFromUrl(dwollaCustomerUrl);
 
     const newUser = await database.createDocument(
@@ -102,7 +124,14 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
 
     return parseStringify(newUser);
   } catch (error) {
-    console.error('Error', error);
+    // console.error('Error', error);
+    console.error('Signup Error', error);
+    // Ensure the error is thrown with a meaningful message
+    throw new Error(
+      error instanceof Error 
+        ? error.message 
+        : 'An unexpected error occurred during signup'
+    );
   }
 }
 

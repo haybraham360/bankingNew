@@ -199,12 +199,25 @@ export const authFormSchema = (type: string) => z.object({
   // sign up
   firstName: type === 'sign-in' ? z.string().optional() : z.string().min(3),
   lastName: type === 'sign-in' ? z.string().optional() : z.string().min(3),
-  address1: type === 'sign-in' ? z.string().optional() : z.string().max(50),
+  address1: type === 'sign-in' ? z.string().optional() : z.string().max(50).regex(/^[a-zA-Z0-9\s]+$/, "Address cannot contain special characters"),
   city: type === 'sign-in' ? z.string().optional() : z.string().max(50),
-  state: type === 'sign-in' ? z.string().optional() : z.string().min(2).max(2),
-  postalCode: type === 'sign-in' ? z.string().optional() : z.string().min(3).max(6),
-  dateOfBirth: type === 'sign-in' ? z.string().optional() : z.string().min(3),
-  ssn: type === 'sign-in' ? z.string().optional() : z.string().min(3),
+  state: type === 'sign-in' ? z.string().optional() : z.string().min(2).max(2).toUpperCase().regex(/^[A-Z]{2}$/, "State must be exactly two uppercase letters"),
+  postalCode: type === 'sign-in' ? z.string().optional() : z.string().min(3).max(5),
+  dateOfBirth: type === 'sign-in' ? z.string().optional() : z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date of birth must be in the format YYYY-MM-DD").refine((dob) => {
+    const today = new Date();
+    const birthDate = new Date(dob);
+
+    // Calculate age
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const isBeforeBirthday =
+      today.getMonth() < birthDate.getMonth() ||
+      (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate());
+
+    const actualAge = age - (isBeforeBirthday ? 1 : 0);
+
+    return actualAge >= 18 && actualAge < 99;
+  }, "User must be at least 18 years old and less than 99 years old"),
+  ssn: type === 'sign-in' ? z.string().optional() : z.string().min(3).max(4),
   // both
   email: z.string().email(),
   password: z.string().min(8),

@@ -29,6 +29,7 @@ const AuthForm = ({ type }: { type: string }) => {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const formSchema = authFormSchema(type);
 
@@ -76,7 +77,24 @@ const AuthForm = ({ type }: { type: string }) => {
           if(response) router.push('/')
         }
       } catch (error) {
-        console.log(error);
+        // console.log(error);
+           // Explicitly type the error and handle different error types
+        if (error instanceof Error) {
+          form.setError('root', {
+            type: 'manual',
+            message: error.message || 'An unexpected error occurred'
+          });
+        } else if (typeof error === 'string') {
+          form.setError('root', {
+            type: 'manual',
+            message: error
+          });
+        } else {
+          form.setError('root', {
+            type: 'manual',
+            message: 'An unexpected error occurred'
+          });
+        }
       } finally {
         setIsLoading(false);
       }
@@ -119,6 +137,11 @@ const AuthForm = ({ type }: { type: string }) => {
       ): (
         <>
           <Form {...form}>
+            {form.formState.errors.root && (
+              <div className="text-red-500 text-sm mb-4">
+                {form.formState.errors.root.message}
+              </div>
+            )}
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               {type === 'sign-up' && (
                 <>
